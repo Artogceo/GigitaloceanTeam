@@ -17,6 +17,7 @@ Docker runtime
 - Start: `docker compose build && docker compose up -d`
 - Access: frontend via port 88 (host) → container 80; API via port 4444 (host) → container 4444 (proxied by frontend when served by nginx).
 - Data stored in named volumes above (self-contained). Frontend has no volumes.
+  - Frontend served without nginx (Node + serve).
 
 App flow
 - Login page posts to `/api/login` → receives JWT + user (id, username, is_admin, names).

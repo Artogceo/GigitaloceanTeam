@@ -17,7 +17,7 @@ Quick start
    - `docker compose -f docker-compose.yml up -d --build`
 4) Open:
    - Frontend: http://<server_ip>:88
-   - API: http://<server_ip>:4444 (proxied by frontend in production)
+   - API: http://<server_ip>:4444 (frontend proxies `/api` to it)
 
 Notes on containers
 - Images include all dependencies (`npm ci` baked into Dockerfiles). No bind-mount of node_modules needed.
@@ -25,7 +25,7 @@ Notes on containers
   - `api_data` ↔ `/app/data.db` (SQLite DB)
   - `api_uploads` ↔ `/app/uploads` (uploaded temp files)
   - `api_log` ↔ `/app/server.log` (API log)
-- Frontend has no volumes; built assets served by nginx.
+- Frontend has no volumes; built assets served by a minimal Node+serve (nginx removed).
 
 Common commands
 - View logs: `docker compose logs -f api` and `docker compose logs -f web`
