@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  api:
+    build: ./server
+    container_name: nbbroweb_api
+    env_file:
+      - .env
+    environment:
+      - PORT=4000
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./server/data.db:/app/data.db
+      - ./server/server.log:/app/server.log
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    container_name: nbbroweb_web
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  uploads:
+
+

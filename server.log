@@ -1,0 +1,5 @@
+
+> nbbroweb-server@0.1.0 dev
+> nodemon index.js
+
+sh: nodemon: command not found

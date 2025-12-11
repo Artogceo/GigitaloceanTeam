@@ -1,0 +1,13 @@
+
+> nbbroweb-server@0.1.0 start
+> node index.js
+
+Server listening on http://localhost:4000
+[Generate] user=artur hasImages=false usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro payloadSummary={"prompt":"final check text to image endpoint","num_images":1,"aspect_ratio":"auto","resolution":"1K","images":0}
+[Generate] user=artur hasImages=false usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro payloadSummary={"prompt":"Сделай карточку для вб с вафельницей в стиле нового года ","num_images":1,"aspect_ratio":"3:4","resolution":"1K","images":0}
+[Generate] user=artur hasImages=true usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro/edit payloadSummary={"prompt":"Посади человека в спорткар","num_images":1,"aspect_ratio":"3:4","resolution":"1K","images":2}
+[Generate] user=artur hasImages=false usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro payloadSummary={"prompt":"создай фото бмв","num_images":1,"aspect_ratio":"auto","resolution":"1K","images":0}
+[Generate] user=artur hasImages=false usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro payloadSummary={"prompt":"создай фото бмв","num_images":1,"aspect_ratio":"3:4","resolution":"1K","images":0}
+[Generate] user=artur hasImages=false usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro payloadSummary={"prompt":"убери горы","num_images":1,"aspect_ratio":"3:4","resolution":"1K","images":0}
+[Generate] user=artur hasImages=false usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro payloadSummary={"prompt":"сделай фото бмв","num_images":1,"aspect_ratio":"3:4","resolution":"1K","images":0}
+[Generate] user=artur hasImages=false usingEndpoint=https://queue.fal.run/fal-ai/nano-banana-pro payloadSummary={"prompt":"Убери горы","num_images":1,"aspect_ratio":"3:4","resolution":"1K","images":0}
