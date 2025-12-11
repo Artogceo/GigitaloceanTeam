@@ -1,0 +1,80 @@
+Project: NBB Roweb — small image-generation webapp (React frontend + Express backend + SQLite)
+
+Local runtime (non-docker)
+- Backend: `cd server && npm install && PORT=4000 node index.js` → http://localhost:4000
+- Frontend: `cd frontend && npm install && npm run dev` (proxy to 4000) → http://localhost:5175
+- Auth: JWT; token stored in localStorage. Users live in SQLite (`server/data.db`).
+- Env (root .env or server/.env): `FAL_KEY`, `JWT_SECRET`, `PORT`, `TEXT_MODEL_ENDPOINT`, `IMAGE_MODEL_ENDPOINT`
+
+Docker runtime
+- Use Docker Compose v2 plugin (`docker compose ...`); file: docker-compose.yml (version "3.8").
+- Services:
+  - api: build ./server; env_file .env; exposes 4000; volumes bind-mounted:
+    * api_uploads:/app/uploads
+    * api_data:/app/data.db
+    * api_log:/app/server.log
+  - web: build ./frontend; exposes 80; depends_on api; NODE_ENV=production
+- Start: `docker compose build && docker compose up -d`
+- Access: frontend via port 88 (host) → container 80; API via port 4444 (host) → container 4444 (proxied by frontend when served by nginx).
+- Data stored in named volumes above (self-contained). Frontend has no volumes.
+
+App flow
+- Login page posts to `/api/login` → receives JWT + user (id, username, is_admin, names).
+- Token is attached as `Authorization: Bearer <jwt>` for protected calls.
+- `/api/me` validates token and returns user (used on app load).
+- Editor page sends `/api/generate` with prompt, optional `image_urls`, and options (aspect_ratio, resolution, output_format, num_images). Endpoint selects TEXT or IMAGE model based on presence of images. Uses FAL queue endpoints from env.
+- Uploads: `/api/upload` (auth) via multipart form field `images` (max 4, 10MB each). Server converts files to data URIs and deletes local temp files immediately.
+- History: `/api/my/requests` (auth) returns prior generation records from SQLite for the current user. Selecting history item dispatches event to Editor to preload. Admins can view all via `/api/admin/requests`.
+- Admin: user management (`/api/admin/users`), model endpoints CRUD (`/api/admin/models`). Admin flag checked via JWT payload.
+
+Key files
+- Backend: server/index.js (Express routes, SQLite schema), server/Dockerfile
+- Frontend: frontend/src/App.jsx (page switch), components (Editor, Login, History, AdminPanel), frontend/Dockerfile
+- Compose: docker-compose.yml (services/ports/volumes)
+
+Troubleshooting
+- If port 4000 busy, stop existing process (`lsof -i :4000`) then restart api.
+- Ensure .env has valid `FAL_KEY` and `JWT_SECRET`; without, generate/login will fail.
+- If database issues, inspect `server/data.db` with sqlite3; logs in `server/server.log`.
+
+User auth (files/flow)
+- Files: `server/index.js` (routes `/api/login`, `/api/me`, admin user CRUD), DB table `users` with fields (id, username, password_hash, is_admin, first_name, last_name).
+- Login: POST `/api/login` (body: username, password) → checks SQLite, bcrypt compare, returns `{ token, user }`.
+- Session: token saved to localStorage (`token`, `user`); `/api/me` verifies JWT and returns user (used on app load in `frontend/src/App.jsx`).
+- Registration: `/api/register` disabled (returns 403).
+
+Admin panel (users/models)
+- Frontend: `frontend/src/components/AdminPanel.jsx` (UI to manage users, models). Admin entrypoint toggled in `frontend/src/App.jsx` when `user.is_admin` true.
+- User endpoints (admin only): `/api/admin/users` GET (list), POST (create user with password), PATCH/PUT (likely update), DELETE (remove). Stored in SQLite `users`.
+- Model endpoints (admin only): `/api/admin/models` POST (add model with name, endpoint), `/api/models` GET (list). Stored in SQLite `models`.
+- Dependencies: JWT auth (`Authorization: Bearer <token>`), Express, sqlite3, bcryptjs (password hashing).
+
+Editor (generation/editing)
+- Frontend: `frontend/src/components/Editor.jsx` (UI for prompts, options, upload images, trigger generate). Reads preloaded values from localStorage keys `editor_load_image`, `editor_load_prompt` and listens to `editor:load` events.
+- Generate: POST `/api/generate` (auth) body: `prompt`, optional `image_urls` (array), `num_images`, `aspect_ratio`, `output_format`, `resolution`. Server chooses TEXT or IMAGE model endpoint based on presence of images; uses env `TEXT_MODEL_ENDPOINT`, `IMAGE_MODEL_ENDPOINT` and `FAL_KEY` to call fal queue APIs via node-fetch.
+- Uploads: POST `/api/upload` (auth, multipart field `images`, max 4 files, 10MB each). Stored temp under `server/uploads`, converted to data URIs, temp files deleted; response `data_uris`.
+- Dependencies: node-fetch, multer, sqlite3 (store requests), JWT middleware.
+
+History
+- Frontend: `frontend/src/components/History.jsx` fetches `/api/my/requests` (auth) to list prior generations from SQLite `requests` table (fields: prompt, status, result_url, aspect_ratio, resolution, num_images, etc.). If admin and empty, optionally fetches `/api/admin/requests`.
+- Selecting a history item triggers `editor:load` event to prefill Editor with prompt/image and switches page to editor.
+- Server routes: `/api/my/requests` (GET, auth), `/api/admin/requests` (GET, admin), and request records are inserted when calling `/api/generate`.
+
+Logging and persistence
+- API log stored in named volume `api_log` at `/app/server.log` (compose). Express logs go there if redirected; admin endpoint `/api/admin/logs` reads it.
+- Request records: SQLite `requests` table in `server/data.db` (named volume `api_data`) persists history. Upload directory `/app/uploads` (named volume `api_uploads`) persists, though uploads are deleted after converting to data URI.
+- Frontend build logs: when running locally, `frontend/dev-frontend.out`; backend: `server/dev-server.out` (only in local dev commands).
+
+Files of interest
+- Backend app: `server/index.js` (all routes, DB init, middleware), `server/Dockerfile`, `server/package.json`
+- Frontend app: `frontend/src/App.jsx`, components `Login.jsx`, `Editor.jsx`, `History.jsx`, `AdminPanel.jsx`, styles `frontend/src/styles.css`, build `frontend/Dockerfile`
+- Compose: `docker-compose.yml` defines ports/volumes/services
+
+Request lifecycle / statuses / history / downloads
+- Submit: `frontend/src/components/Editor.jsx` sends POST `/api/generate` (auth) with prompt, optional `image_urls` (from uploads or text), `num_images`, `aspect_ratio`, `resolution`, `output_format`, plus client flags. Backend inserts row into SQLite `requests` with status `submitted` and returns `request_id`.
+- Upload step (optional): Editor calls POST `/api/upload` (auth, multipart field `images`, max 4). Backend saves temp files under `server/uploads`, converts to data URIs, deletes files, returns `{ data_uris: [...] }`. These URIs are passed to `/api/generate` as `image_urls`.
+- Status polling: Editor polls GET `/api/requests/:id/status` every ~10s. Backend proxies to Fal queue status (`https://queue.fal.run/fal-ai/nano-banana-pro/requests/{id}/status`), then if completed/succeeded fetches full result (`.../requests/{id}`), extracts first image URL, updates `requests` row (`status`, `result_url`). Billing errors → `billing_error`; other failures set `failed`; otherwise status updated to current Fal status. Response returns normalized status plus Fal payload so client can act.
+- History storage: Table `requests` captures `fal_request_id`, `prompt`, `status`, `result_url`, `aspect_ratio`, `resolution`, `num_images`, `output_format`, timestamps. Inserted on submit; updated during status checks.
+- History fetch: `/api/my/requests` returns current user’s rows; `/api/admin/requests` returns all (optional `?user_id=`). History UI can refresh a single job by calling `/api/requests/:id/status`, then reloading `/api/my/requests`.
+- Download/open/edit: History shows `result_url`; buttons `Открыть` (opens URL) and `Редактировать` (fires `editor:load` to preload). Editor’s result section exposes direct download link (anchor to `outputUrl`), copy link, and “Редактировать” to push the generated image back as input.
+- Admin actions: AdminPanel can view all requests (`/api/admin/requests`) and wipe history/uploads via `/api/admin/clear_history` (destructive).

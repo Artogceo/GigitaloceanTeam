@@ -6,13 +6,13 @@ services:
     env_file:
       - .env
     environment:
-      - PORT=4000
+      - PORT=4444
     volumes:
-      - ./server/uploads:/app/uploads
-      - ./server/data.db:/app/data.db
-      - ./server/server.log:/app/server.log
+      - api_uploads:/app/uploads
+      - api_data:/app/data.db
+      - api_log:/app/server.log
     ports:
-      - "4000:4000"
+      - "4444:4444"
     restart: unless-stopped
 
   web:
@@ -21,12 +21,12 @@ services:
     depends_on:
       - api
     ports:
-      - "80:80"
+      - "88:80"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
 
 volumes:
-  uploads:
-
-
+  api_uploads:
+  api_data:
+  api_log:
