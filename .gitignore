@@ -1,0 +1,11 @@
+node_modules/
+server/node_modules/
+frontend/node_modules/
+.env
+server/data.db
+server/uploads/
+*.log
+nbbroweb-export.tar.gz
+.DS_Store
+
+
