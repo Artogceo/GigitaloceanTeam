@@ -8,12 +8,17 @@ services:
     environment:
       - PORT=4444
     volumes:
-      - api_uploads:/app/uploads
-      - api_data:/app/data.db
-      - api_log:/app/server.log
+      - ./server/uploads:/app/uploads
+      - ./server/data.db:/app/data.db
+      - ./server/server.log:/app/server.log
     ports:
       - "4444:4444"
-    restart: unless-stopped
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4444/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   web:
     build: ./frontend
@@ -21,10 +26,15 @@ services:
     depends_on:
       - api
     ports:
-      - "88:80"
-    restart: unless-stopped
+      - "8088:80"
+    restart: always
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   api_uploads:

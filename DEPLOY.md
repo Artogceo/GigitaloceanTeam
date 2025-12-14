@@ -4,7 +4,7 @@ Goal: single compose stack that runs anywhere; only set keys/ports.
 
 Prereqs
 - Docker + Docker Compose v2 (`docker compose`).
-- Ports: 88 (frontend) and 4444 (API) free, or adjust in compose.
+- Ports: 8088 (frontend container) and 4444 (API) free, or adjust in compose. Host port 80/443 will be reserved by your reverse proxy.
 
 Quick start
 1) Copy repo to server.
@@ -16,8 +16,8 @@ Quick start
 3) Build & run:
    - `docker compose -f docker-compose.yml up -d --build`
 4) Open:
-   - Frontend: http://<server_ip>:88
-   - API: http://<server_ip>:4444 (frontend proxies `/api` to it)
+  - Frontend: http://<server_ip>:8088 (or point your domain to nginx that proxies to it)
+  - API: http://<server_ip>:4444 (proxied by frontend in production)
 
 Notes on containers
 - Images include all dependencies (`npm ci` baked into Dockerfiles). No bind-mount of node_modules needed.
